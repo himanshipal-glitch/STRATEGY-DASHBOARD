@@ -1,0 +1,26 @@
+{
+  "_readme": [
+    "Optional hand-written write-ups. Anything you put here REPLACES the text the",
+    "dashboard derives from the Excel columns, and is badged 'written up' on screen.",
+    "Leave 'projects' empty and everything stays derived from the tracker.",
+    "",
+    "Key each entry by the tracker ID (the number in the All sheet's ID column, without",
+    "the .0) or by the exact task name. Every field is optional - fill only what you want",
+    "to override.",
+    "",
+    "  \"projects\": {",
+    "    \"15\": {",
+    "      \"what\": \"One paragraph on what the project actually is.\",",
+    "      \"how\": \"How it was built - stack, data sources, decisions made.\",",
+    "      \"why\": \"Why it existed and what changed because of it.\",",
+    "      \"owners\": [\"Annada\"]",
+    "    },",
+    "    \"Overall Marketing Dashboard\": {",
+    "      \"why\": \"Only overriding the why; what and how stay derived from Excel.\"",
+    "    }",
+    "  }",
+    "",
+    "The dashboard warns you if a key here matches no project, so typos are caught."
+  ],
+  "projects": {}
+}

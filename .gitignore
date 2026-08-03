@@ -1,0 +1,12 @@
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# The tracker is internal team data - keep it out of the repo. The dashboard reads it
+# from wherever the sidebar path points, so it does not need to live here.
+*.xlsx
+*.xls
+
+.streamlit/secrets.toml
+.DS_Store

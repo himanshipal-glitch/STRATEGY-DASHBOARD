@@ -1,0 +1,7 @@
+# Lower bounds are what the app actually needs; upper bounds stop a surprise major
+# release from breaking the deployed build.
+#   streamlit >=1.37 for st.fragment(run_every), >=1.40 for st.pills / st.segmented_control
+#   openpyxl is what pandas uses to read .xlsx, including the Google Sheets export
+streamlit>=1.40,<2
+pandas>=2.0,<3
+openpyxl>=3.1,<4

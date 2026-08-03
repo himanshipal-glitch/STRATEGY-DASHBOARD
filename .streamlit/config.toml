@@ -1,0 +1,17 @@
+# Base theme for Streamlit's own widgets. The dashboard's look is driven by theme.py;
+# these values keep the built-in controls (inputs, selects, buttons) in the same family.
+# If you change a colour in theme.py, mirror the equivalent here.
+#
+# Deliberately NO [server] section: pinning a port or headless mode here breaks Streamlit
+# Community Cloud, which sets both itself. Pass --server.port locally instead (run.bat
+# does). The palette below matches theme.BRAND as of the monochrome redesign.
+
+[theme]
+base = "light"
+primaryColor = "#1D6F42"              # BRAND["accent"]
+backgroundColor = "#FFFFFF"           # BRAND["bg"]
+secondaryBackgroundColor = "#F5F5F7"  # BRAND["bg_alt"]
+textColor = "#1D1D1F"                 # BRAND["ink"]
+
+[browser]
+gatherUsageStats = false
