@@ -633,6 +633,36 @@ def _load_legacy(sheets: dict[str, pd.DataFrame], overrides: dict
 # ---------------------------------------------------------------------------
 # Entry point
 # ---------------------------------------------------------------------------
+def _best_projects_tab(sheets: dict[str, pd.DataFrame], lookup: dict[str, str]):
+    """The tab that most looks like the intake sheet, by columns rather than by name.
+
+    Returns (tab name, dataframe) or (None, None) when no tab has a project-name column.
+    A tab called "Projects" always wins if it qualifies; otherwise the tab with the most
+    recognised intake columns does, so an import that landed on the wrong tab still works.
+    """
+    required = {re.sub(r"[^a-z0-9]+", "", h.lower()) for h in REQUIRED_HEADERS}
+    # Columns that mark a sheet as the NEW format rather than the legacy tracker.
+    signals = {
+        "whatitisabout", "howitwasbuilt", "whyitwasbuilt", "pointofcontact",
+        "contributors", "stepschecklist", "impactwhatchanged", "links",
+    }
+
+    best = (None, None, -1)
+    for name, raw in sheets.items():
+        frame = raw.dropna(how="all")
+        cols = set(_norm_cols(frame))
+        if not (cols & required):
+            continue                      # no project-name column: not a candidate
+        score = len(cols & signals)
+        if score == 0:
+            continue                      # looks like the legacy tracker, not the intake
+        if lookup.get("projects") == name:
+            score += 100                  # an explicitly named tab always wins
+        if score > best[2]:
+            best = (name, frame, score)
+    return best[0], best[1]
+
+
 def load_projects(workbook: str | Path) -> tuple[list[Project], list[str], list[str]]:
     """Return (projects, warnings, status_order).
 
@@ -643,26 +673,34 @@ def load_projects(workbook: str | Path) -> tuple[list[Project], list[str], list[
     label = str(workbook) if is_google_sheet(workbook) else Path(workbook).name
     sheets = _read_workbook(workbook)
     overrides = _load_overrides()
+    warnings: list[str] = []
 
     # Match sheet names loosely so "projects" / "Projects " still resolve.
     lookup = {re.sub(r"[^a-z0-9]+", "", str(k).lower()): k for k in sheets}
 
-    if "projects" in lookup:
-        df = sheets[lookup["projects"]].dropna(how="all")
-        cols = _norm_cols(df)
-        if not any(cols.get(re.sub(r"[^a-z0-9]+", "", h.lower())) for h in REQUIRED_HEADERS):
-            raise ValueError(
-                f"The '{NEW_SHEET}' sheet has no 'Project Name' column, so there is "
-                f"nothing to read. Columns found: {', '.join(map(str, df.columns))}. "
-                f"Every other column is optional — this is the only one required."
+    # Find the intake table by its COLUMNS, not by its tab name. Importing the template
+    # into Google Sheets with "Replace current sheet" lands the new columns on whatever
+    # tab happened to be selected, so keying off the name alone made the dashboard fall
+    # back to legacy mode and show 27 blank write-ups. Whichever tab looks most like the
+    # intake sheet wins.
+    tab_name, df = _best_projects_tab(sheets, lookup)
+
+    if tab_name is not None:
+        if tab_name != lookup.get("projects"):
+            warnings.append(
+                f"Reading projects from the '{tab_name}' tab — it has the intake columns "
+                f"even though it is not called '{NEW_SHEET}'. Renaming that tab to "
+                f"'{NEW_SHEET}' would make this unambiguous."
             )
-        projects, warnings = _load_new_format(df, overrides)
-        source = NEW_SHEET
+        projects, more = _load_new_format(df, overrides)
+        warnings.extend(more)
+        source = str(tab_name)
     elif "all" in lookup:
         sheets = {LEGACY_MASTER: sheets[lookup["all"]],
                   **({LEGACY_DETAIL: sheets[lookup["completed"]]}
                      if "completed" in lookup else {})}
-        projects, warnings = _load_legacy(sheets, overrides)
+        projects, more = _load_legacy(sheets, overrides)
+        warnings.extend(more)
         source = f"{LEGACY_MASTER} + {LEGACY_DETAIL}"
     else:
         raise ValueError(
