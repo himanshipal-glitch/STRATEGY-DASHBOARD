@@ -72,11 +72,9 @@ def initials(name: str) -> str:
     return (parts[0][:2] if len(parts) == 1 else parts[0][0] + parts[-1][0]).upper()
 
 
-def status_tag(status: str, on_dark: bool = False) -> str:
-    return (
-        f'<span class="status"><span class="dot" '
-        f'style="background:{theme.status_dot(status, on_dark)}"></span>{esc(status)}</span>'
-    )
+# No status_tag helper any more. Status is delivery-tracking detail: it stays in the sheet
+# and appears only as plain text under "Delivery detail" on a build page. A catalogue for
+# the whole organisation should not lead with how the team is performing.
 
 
 def vertical_tag(vertical: str) -> str:
@@ -177,32 +175,35 @@ def source_stamp(source: str) -> str:
 # Hero
 # ---------------------------------------------------------------------------
 def render_hero(projects: list[Project], source: str, statuses: list[str]) -> None:
-    counts: dict[str, int] = {}
-    for p in projects:
-        counts[p.status] = counts.get(p.status, 0) + 1
-    described = sum(1 for p in projects if p.has_description)
+    """Headline facts about the LIBRARY, not about the team's performance.
+
+    Deliberately no completion counts, no 'needs attention', no progress. This is a
+    catalogue of what the strategy team has built for anyone in the organisation to look
+    things up in - not a scorecard for the team that built them. Status and priority stay
+    in the sheet but never drive this page.
+    """
     verticals = len({p.vertical for p in projects})
     people = len({n for p in projects for n in (p.owners + p.collaborators)})
+    tools = len({k for p in projects for k in p.artifact_kinds})
+    described = sum(1 for p in projects if p.has_description)
     stamp = source_stamp(source)
 
-    # The status tiles are whichever statuses the team actually uses, biggest first —
-    # so renaming or adding one on the Lists tab changes the hero with no code change.
-    top = sorted(
-        (s for s in statuses if counts.get(s)),
-        key=lambda s: (-counts[s], statuses.index(s)),
-    )[:3]
-    stats = [(len(projects), "Projects")]
-    stats += [(counts[s], esc(s)) for s in top]
-    stats.append((described, f"Described <em>of {len(projects)}</em>"))
+    stats = [
+        (len(projects), "Builds"),
+        (verticals, "Verticals"),
+        (people, "People"),
+        (tools, "Built with"),
+        (described, f"Written up <em>of {len(projects)}</em>"),
+    ]
     # data-run carries the epoch second of this render. Invisible, but it makes "did the
     # page actually re-read the sheet?" answerable at a glance in devtools.
     st.markdown(
         f"""
 <div class="hero" data-run="{int(time.time())}">
-  <div class="hero-eyebrow">Strategy &middot; Project Registry</div>
+  <div class="hero-eyebrow">Strategy &middot; Build Library</div>
   <h1>Everything the strategy team has built.</h1>
-  <div class="hero-lede">Every project, the person to talk to about it, and — one click
-    in — what it is, how it was put together and why it exists.</div>
+  <div class="hero-lede">What each build is about, how it was put together, why it exists,
+    and who to talk to. Open to anyone in the organisation.</div>
   <div class="hero-stats">"""
         + "".join(
             f'<div class="hstat"><div class="n">{n}</div><div class="k">{k}</div></div>'
@@ -223,60 +224,60 @@ def render_hero(projects: list[Project], source: str, statuses: list[str]) -> No
 # Toolbar
 # ---------------------------------------------------------------------------
 def render_toolbar(projects: list[Project], statuses: list[str]) -> list[Project]:
+    """Browse by subject and by medium - the two questions a stranger actually asks.
+
+    Note what is NOT here: no status chips, no priority filter. Those are delivery-
+    tracking concerns and this is a catalogue, so they stay in the sheet and off the page.
+    """
     spacer(34)
     head, find = st.columns([1.45, 1], vertical_alignment="bottom")
     head.markdown(
-        '<div class="tool-head"><span class="tool-title">The index</span>'
-        f'<span class="tool-sub">{plural(len(projects), "project")}</span></div>',
+        '<div class="tool-head"><span class="tool-title">The library</span>'
+        f'<span class="tool-sub">{plural(len(projects), "build")}</span></div>',
         unsafe_allow_html=True,
     )
     with find.container(key="find"):
         query = st.text_input(
             "Search", key="q", label_visibility="collapsed",
-            placeholder="Search projects, people, impact",
+            placeholder="Search builds, people, what they do",
         ) or ""
-
-    # One chip per status the team actually uses, in the order they put them on the
-    # Lists tab. Add, rename or delete a status there and this follows automatically.
-    spacer(18)
-    with st.container(key="status"):
-        status = st.segmented_control(
-            "Status", ["All", *statuses], default="All", label_visibility="collapsed",
-        ) or "All"
 
     counts: dict[str, int] = {}
     for p in projects:
         counts[p.vertical] = counts.get(p.vertical, 0) + 1
     order = ["All"] + sorted(counts, key=lambda v: (-counts[v], v))
-    spacer(10)
+    spacer(18)
     with st.container(key="cats"):
         vertical = st.pills(
             "Vertical", order, default="All", label_visibility="collapsed",
             format_func=lambda v: f"{v} {len(projects) if v == 'All' else counts[v]}",
         ) or "All"
 
-    # Always-visible refine row: st.expander needs an icon font we cannot load.
+    # "Built with" is derived from the linked file's host, so it needs no new column.
+    tool_counts: dict[str, int] = {}
+    for p in projects:
+        for kind in p.artifact_kinds:
+            tool_counts[kind] = tool_counts.get(kind, 0) + 1
+
     spacer(6)
     with st.container(key="refine"):
-        c1, c2, c3 = st.columns([1, 1, 1.15], vertical_alignment="bottom")
-        priorities = c1.multiselect(
-            "Priority", sorted({p.priority for p in projects if p.priority}),
-            placeholder="Any",
+        c1, c2, c3 = st.columns([1.15, 1, 1], vertical_alignment="bottom")
+        tools = c1.multiselect(
+            "Built with", sorted(tool_counts, key=lambda k: (-tool_counts[k], k)),
+            placeholder="Anything",
         )
         people = c2.multiselect(
             "Person involved",
             sorted({n for p in projects for n in (p.owners + p.collaborators)}),
             placeholder="Anyone",
         )
-        only_gaps = c3.checkbox("Only projects missing a write-up")
+        only_gaps = c3.checkbox("Only builds missing a write-up")
 
     out = []
     for p in projects:
         if vertical != "All" and p.vertical != vertical:
             continue
-        if status != "All" and p.status != status:
-            continue
-        if priorities and p.priority not in priorities:
+        if tools and not (set(tools) & set(p.artifact_kinds)):
             continue
         if people and not (set(people) & set(p.owners + p.collaborators)):
             continue
@@ -299,6 +300,13 @@ def render_toolbar(projects: list[Project], statuses: list[str]) -> list[Project
 # ---------------------------------------------------------------------------
 # The index
 # ---------------------------------------------------------------------------
+def built_with_tag(p: Project) -> str:
+    """What the thing actually IS - read from the linked file's host, never guessed."""
+    if not p.artifact_kinds:
+        return ""
+    return f'<span class="builtwith">{esc(", ".join(p.artifact_kinds))}</span>'
+
+
 def row_summary(p: Project) -> tuple[str, bool]:
     """Blurb for the row, plus whether it is a real description.
 
@@ -311,22 +319,16 @@ def row_summary(p: Project) -> tuple[str, bool]:
         one_line = " ".join(max((t for _, t in blocks), key=len).split())
         return (one_line[:210] + "\N{HORIZONTAL ELLIPSIS}"
                 if len(one_line) > 210 else one_line), True
-    if p.steps:
-        return (f"{plural(len(p.steps), 'tracked step')}, {p.steps_done} done — "
-                f"no description written yet."), False
-    return "No description in the tracker yet.", False
+    return "No write-up yet.", False
 
 
 def render_row(p: Project, n: int) -> None:
-    summary, is_real = row_summary(p)
+    """One catalogue entry: what it is, what it was built as, and who to ask.
 
-    meta = [people_row(p.owners, "Unassigned"), vertical_tag(p.vertical)]
-    if p.progress is not None:
-        meta.append(
-            f'<span class="pbar"><span class="pbar-fill" '
-            f'style="width:{p.progress * 100:.0f}%"></span></span>'
-            f'<span style="margin-left:8px" class="tnum">{p.steps_done}/{len(p.steps)}</span>'
-        )
+    No status, no priority, no progress bar - see render_toolbar for why.
+    """
+    summary, is_real = row_summary(p)
+    meta = [people_row(p.owners, "No POC recorded"), vertical_tag(p.vertical)]
     meta_html = '<span class="sep">·</span>'.join(f"<span>{m}</span>" for m in meta)
 
     with st.container(key=f"row_{p.pid}"):
@@ -338,8 +340,7 @@ def render_row(p: Project, n: int) -> None:
             f'<div class="idx-desc{"" if is_real else " is-empty"}">{esc(summary)}</div>'
             f'<div class="idx-meta">{meta_html}</div>'
             f"</div>"
-            f'<div class="idx-right">{status_tag(p.status)}'
-            f'<div class="idx-pri">{esc(p.priority)}</div></div>'
+            f'<div class="idx-right">{built_with_tag(p)}</div>'
             f'<div class="idx-chev"></div>'
             f"</div>",
             unsafe_allow_html=True,
@@ -435,7 +436,23 @@ def how_extra_html(p: Project) -> str:
     return parts
 
 
-def render_detail(p: Project, all_projects: list[Project]) -> None:
+def edit_link_html(p: Project, source: str) -> str:
+    """Link to the sheet so editing is one click away.
+
+    The dashboard is deliberately read-only - it reads Google's one-way xlsx export - so
+    the honest affordance is to send people to where the data actually lives rather than
+    fake an editable control.
+    """
+    if not is_google_sheet(source):
+        return ""
+    where = f" &middot; row {p.sheet_row}" if p.sheet_row else ""
+    return (
+        f'<a class="edit-link" href="{esc(source)}" target="_blank" rel="noopener">'
+        f"Edit this project in the sheet{where} \N{RIGHTWARDS ARROW}</a>"
+    )
+
+
+def render_detail(p: Project, all_projects: list[Project], source: str = "") -> None:
     with st.container(key="back"):
         if st.button("\N{LEFTWARDS ARROW}  All projects", key="back_btn"):
             st.session_state.pop("selected", None)
@@ -448,19 +465,20 @@ def render_detail(p: Project, all_projects: list[Project]) -> None:
         if p.days is not None:
             timeline += f" ({plural(int(p.days), 'day')})"
 
+    # Catalogue facts only. Status, priority and dates are delivery-tracking detail and
+    # live in the quiet footer strip further down, not in the headline.
     meta = [
-        ("Point of contact", people_row(p.owners, "Unassigned")),
-        ("Status", status_tag(p.status, on_dark=True)),
+        ("Point of contact", people_row(p.owners, "No POC recorded")),
         ("Vertical", vertical_tag(p.vertical)),
-        ("Priority", esc(p.priority) or "-"),
-        ("Timeline", esc(timeline)),
     ]
-    if p.pid and not p.pid.startswith("c-"):
-        meta.append(("Tracker ID", f"#{esc(p.pid)}"))
+    if p.artifact_kinds:
+        meta.append(("Built as", esc(", ".join(p.artifact_kinds))))
+    if p.collaborators:
+        meta.append(("Built with", people_row(p.collaborators)))
 
     st.markdown(
         '<div class="dhero">'
-        '<div class="kicker">Project</div>'
+        '<div class="kicker">Build</div>'
         f"<h1>{esc(p.name)}</h1>"
         '<div class="dmeta">'
         + "".join(
@@ -468,7 +486,7 @@ def render_detail(p: Project, all_projects: list[Project]) -> None:
             f'<div class="dmeta-value">{value}</div></div>'
             for label, value in meta
         )
-        + "</div></div>",
+        + f"</div>{edit_link_html(p, source)}</div>",
         unsafe_allow_html=True,
     )
 
@@ -486,9 +504,9 @@ def render_detail(p: Project, all_projects: list[Project]) -> None:
         )
 
     qa_section(
-        "What this project is about",
+        "What this build is about",
         p.what_blocks(),
-        "Nobody has written a description of this project yet. Fill in the "
+        "Nobody has written a description of this build yet. Fill in the "
         "'What It Is About' column of the Projects sheet.",
     )
     qa_section(
@@ -511,6 +529,24 @@ def render_detail(p: Project, all_projects: list[Project]) -> None:
     impact = p.impact_blocks()
     if impact:
         qa_section("What changed", impact, "")
+
+    # Delivery detail, deliberately last and deliberately quiet: useful if you go looking,
+    # never the headline. This is where status/priority/dates live now.
+    facts = [(k, v) for k, v in (
+        ("Status", esc(p.status)),
+        ("Priority", esc(p.priority)),
+        ("Timeline", esc(timeline) if timeline != "Not recorded" else ""),
+    ) if v]
+    if facts:
+        st.markdown(
+            '<div class="qa"><h3>Delivery detail</h3><div class="meta-grid">'
+            + "".join(
+                f'<div class="meta-item"><div class="meta-label">{esc(k)}</div>'
+                f'<div class="meta-value">{v}</div></div>' for k, v in facts
+            )
+            + "</div></div>",
+            unsafe_allow_html=True,
+        )
 
     # Whatever extra columns the team has added to the sheet, shown verbatim. No code
     # change is needed to surface a new column.
@@ -621,7 +657,7 @@ def main() -> None:
         (p for p in projects if p.pid == st.session_state.get("selected")), None
     )
     if selected is not None:
-        render_detail(selected, projects)
+        render_detail(selected, projects, used)
         render_footer(source)
         return
 
@@ -647,22 +683,20 @@ def render_gap_banner_slot(all_projects: list[Project]) -> None:
     bits = []
     if undescribed:
         bits.append(
-            f"<b>{len(undescribed)} of {len(all_projects)} projects have no description "
-            f"yet</b> — nothing in the <i>Process Done</i> or <i>Impact</i> column to say "
-            f"what they are."
+            f"<b>{len(undescribed)} of {len(all_projects)} builds have no description "
+            f"yet</b> — nothing on record to say what they are."
         )
     if no_why:
         bits.append(
-            f"<b>{len(no_why)} have no stated rationale</b>, because the spreadsheet has "
-            f"no <i>why</i> column — <i>Impact</i> records what changed, not why the work "
-            f"was commissioned."
+            f"<b>{len(no_why)} have no stated rationale</b> — nothing on record for why "
+            f"the work was picked up."
         )
     spacer(20)
     st.markdown(
         '<div class="gap-note">' + " ".join(bits)
-        + f" Nothing is invented to cover for that, so those sections read as blank. "
-          f"Fill the Excel columns, or write prose into <code>{OVERRIDES_PATH.name}</code>."
-          f"</div>",
+        + " Nothing is invented to cover for that, so those sections read as blank. "
+          "Fill in <i>What It Is About</i>, <i>How It Was Built</i> and <i>Why It Was "
+          "Built</i> on the sheet and they fill themselves in here.</div>",
         unsafe_allow_html=True,
     )
 

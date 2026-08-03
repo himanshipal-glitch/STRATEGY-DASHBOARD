@@ -179,6 +179,10 @@ class Project:
     # needs no code change at all.
     extras: dict[str, str] = field(default_factory=dict)
 
+    # 1-based row on the Projects sheet, so the UI can send someone straight to the row
+    # they need to edit. 0 when unknown (legacy format).
+    sheet_row: int = 0
+
     # authored prose from overrides.json
     authored: dict[str, str] = field(default_factory=dict)
 
@@ -444,6 +448,14 @@ def _status_order(sheets: dict[str, pd.DataFrame], seen: list[str]) -> list[str]
     return [s for s in ordered if s in seen] or seen
 
 
+def _row_number(index_value) -> int:
+    """Sheet row for a pandas index value: +2 for the header and the 0-based index."""
+    try:
+        return int(index_value) + 2
+    except (TypeError, ValueError):
+        return 0
+
+
 def _norm_cols(df: pd.DataFrame) -> dict[str, str]:
     """Map normalised column name -> actual column name, so headers can drift a little."""
     return {re.sub(r"[^a-z0-9]+", "", str(c).lower()): c for c in df.columns}
@@ -516,6 +528,11 @@ def _load_new_format(df: pd.DataFrame, overrides: dict) -> tuple[list[Project], 
             completed=completed,
             days=_days(created, completed),
             notes=_strip_urls(notes),
+            # dropna(how="all") keeps the original index, so this stays true to the
+            # sheet even when blank rows sit between projects. +2 for the header row
+            # and pandas' 0-based index. Converted with a try rather than an isinstance
+            # check: the index is a numpy.int64, which is NOT a Python int on Windows.
+            sheet_row=_row_number(raw.name),
         )
         # Columns the team invented: kept verbatim and shown on the detail page.
         for norm_name, actual in cols.items():

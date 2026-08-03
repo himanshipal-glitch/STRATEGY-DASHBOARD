@@ -296,6 +296,21 @@ div[class*="st-key-row_"]:hover .idx-chev {{
   border-color: {b['ink']}; transform: rotate(45deg) translate(2px, -2px);
 }}
 
+/* "built with" - what the thing actually is, read from the linked file's host */
+.builtwith {{
+  display: inline-block; font-size: .705rem; font-weight: 500; color: {b['ink_400']};
+  background: {b['bg_alt']}; border: 1px solid {b['hairline_soft']};
+  border-radius: {r['chip']}; padding: 3px 10px; line-height: 1.35;
+}}
+
+/* delivery detail: a quiet grid at the foot of a build page, never the headline */
+.meta-grid {{ display: flex; flex-wrap: wrap; gap: 16px 40px; }}
+.meta-item .meta-label {{
+  font-size: .62rem; font-weight: 600; letter-spacing: .09em; text-transform: uppercase;
+  color: {b['ink_200']}; margin-bottom: 6px;
+}}
+.meta-item .meta-value {{ font-size: .85rem; color: {b['ink_400']}; font-weight: 500; }}
+
 /* progress: a hairline that fills */
 .pbar {{
   height: 2px; background: {b['hairline_soft']}; border-radius: 2px;
@@ -378,6 +393,17 @@ div[class*="st-key-back"] .stButton > button:hover {{
 .dmeta .status {{ color: {b['on_dark']}; }}
 .dmeta .vert {{ background: rgba(255,255,255,.09); color: {b['on_dark']}; }}
 .dmeta .person {{ color: {b['on_dark']}; }}
+/* "edit in the sheet" - the dashboard is read-only, so this is the real affordance */
+.edit-link {{
+  display: inline-block; margin-top: 26px;
+  font-size: .82rem; font-weight: 500; color: {b['on_dark']} !important;
+  background: rgba(255,255,255,.10); border: 1px solid rgba(255,255,255,.16);
+  border-radius: {r['chip']}; padding: .4rem 1rem; text-decoration: none !important;
+  transition: background .16s ease, border-color .16s ease;
+}}
+.edit-link:hover {{
+  background: rgba(255,255,255,.17); border-color: rgba(255,255,255,.3);
+}}
 .dmeta .person-avatar {{
   background: rgba(255,255,255,.11); color: {b['on_dark']}; border-color: rgba(255,255,255,.16);
 }}
