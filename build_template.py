@@ -79,11 +79,7 @@ COLUMNS: list[tuple[str, int, bool, bool, str]] = [
     ("Start Date", 13, False, False, "When work began. Format dd-mm-yyyy."),
     ("Completed Date", 14, False, False,
      "When it went live. Shown under History on the dashboard."),
-    ("Steps / Checklist", 46, True, False,
-     "How it came together, one step per line, each starting with [x] for done or "
-     "[ ] for outstanding. Example:\n[x] Collected the data\n[ ] Waiting on Marketing\n"
-     "Shown as a checklist under 'How it was built'."),
-    ("Links", 40, True, True,
+    ("Links", 44, True, True,
      "One URL per line — the sheet, doc, dashboard or script itself. This becomes the "
      "'Open the build' button, so without it a reader cannot get to the actual thing. "
      "The dashboard also reads each address to work out what the project was built as."),
@@ -133,8 +129,6 @@ GUIDE = [
     ("Leave anything you genuinely do not know BLANK. The dashboard shows an honest "
      "'not recorded yet' note for empty fields. Please do not guess or pad — a blank is "
      "more useful than a made-up sentence.", "bullet"),
-    ("Steps / Checklist: one per line, each starting with [x] done or [ ] outstanding.",
-     "bullet"),
     ("Links: one URL per line.", "bullet"),
     ("", ""),
     ("Then what?", "h2"),
