@@ -572,32 +572,26 @@ def render_detail(p: Project, all_projects: list[Project], source: str = "") -> 
             unsafe_allow_html=True,
         )
 
+    # ONE description is the headline. "What It Is About" carries the whole story now -
+    # the separate How and Why columns were collapsed into it.
     qa_section(
-        "What this build is about",
+        "About this build",
         p.what_blocks(),
         "Nobody has written a description of this build yet. Fill in the "
-        "'What It Is About' column of the Projects sheet.",
+        "'What It Is About' column of the sheet.",
     )
-    qa_section(
-        "How it was built",
-        p.how_blocks(),
-        "Nothing recorded about how this was put together. Fill in the "
-        "'How It Was Built' column of the Projects sheet.",
-        extra_html=how_extra_html(p),
-        # Knowing who was involved isn't the same as knowing how it was built, so the
-        # empty note still shows when only collaborators are on record.
-        show_empty=not p.has_how(),
-    )
-    qa_section(
-        "Why it was built",
-        p.why_blocks(),
-        "No rationale recorded. Fill in the 'Why It Was Built' column of the Projects "
-        "sheet — and note it is not the same as Impact: why is the problem that started "
-        "the work, Impact is what changed once it shipped.",
-    )
+
+    # Everything below renders ONLY when there is something to show. These columns are
+    # optional and some have been removed from the sheet entirely; rendering a
+    # "nothing recorded" placeholder for a column that no longer exists is just noise.
+    if p.how_blocks() or p.steps or p.links:
+        qa_section("How it came together", p.how_blocks(), "",
+                   extra_html=how_extra_html(p), show_empty=False)
+    if p.why_blocks():
+        qa_section("Why it was built", p.why_blocks(), "", show_empty=False)
     impact = p.impact_blocks()
     if impact:
-        qa_section("What changed", impact, "")
+        qa_section("What changed", impact, "", show_empty=False)
 
     # History, not delivery tracking: when it ran and what it saved. Status and priority
     # are intentionally absent - this catalogue lists finished work, so "is it done?" is
@@ -617,6 +611,11 @@ def render_detail(p: Project, all_projects: list[Project], source: str = "") -> 
             + "</div></div>",
             unsafe_allow_html=True,
         )
+
+    # Notes used to be collected and never shown, so anyone filling that column was
+    # wasting their time. If someone writes it, it gets read.
+    if p.notes:
+        qa_section("Notes", [("Notes column", p.notes)], "")
 
     # Whatever extra columns the team has added to the sheet, shown verbatim. No code
     # change is needed to surface a new column.
@@ -758,10 +757,16 @@ def main() -> None:
 
 
 def render_gap_banner_slot(all_projects: list[Project]) -> None:
+    """Report only gaps the team can actually close.
+
+    Deliberately says nothing about How / Why any more: those columns were folded into
+    the single description, so nagging about them would be asking for something the
+    sheet no longer has a place for.
+    """
     undescribed = [p for p in all_projects if not p.has_description]
-    no_why = [p for p in all_projects if not p.why_blocks()]
+    no_link = [p for p in all_projects if not p.links]
     no_email = not any(p.poc_email for p in all_projects)
-    if not (undescribed or no_why or no_email):
+    if not (undescribed or no_link or no_email):
         return
     bits = []
     # The registry's core promise is "find the build, then contact its owner". Without an
@@ -778,17 +783,17 @@ def render_gap_banner_slot(all_projects: list[Project]) -> None:
             f"<b>{len(undescribed)} of {len(all_projects)} builds have no description "
             f"yet</b> — nothing on record to say what they are."
         )
-    if no_why:
+    if no_link:
         bits.append(
-            f"<b>{len(no_why)} have no stated rationale</b> — nothing on record for why "
-            f"the work was picked up."
+            f"<b>{len(no_link)} have no link</b>, so there is nothing for a reader to "
+            f"open."
         )
     spacer(20)
     st.markdown(
         '<div class="gap-note">' + " ".join(bits)
         + " Nothing is invented to cover for that, so those sections read as blank. "
-          "Fill in <i>What It Is About</i>, <i>How It Was Built</i> and <i>Why It Was "
-          "Built</i> on the sheet and they fill themselves in here.</div>",
+          "Fill in <i>What It Is About</i> and <i>Links</i> on the sheet and they fill "
+          "themselves in here.</div>",
         unsafe_allow_html=True,
     )
 

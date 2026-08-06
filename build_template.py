@@ -58,41 +58,35 @@ COLUMNS: list[tuple[str, int, bool, bool, str]] = [
      "readable — 'Leadership view of the central dashboard', not 'LV dash v2'."),
     ("Vertical", 16, False, True,
      "Which vertical this belongs to. Pick from the list, or type a new one if none fit."),
-    ("Status", 14, False, True,
-     "Pick from the dropdown, or type your own. Each status becomes its own filter on "
-     "the dashboard; add one to the Lists tab to share it with everyone. The order of "
-     "the Status column on the Lists tab sets the order of the filters."),
-    ("Priority", 15, False, False, "Pick from the list."),
+    # Status and Priority are gone on purpose. The registry lists work that is currently
+    # IN USE, so "is it done?" is not a question a reader should have to ask - and
+    # neither column was displayed anywhere, so filling them was wasted effort.
     ("Point of Contact", 20, True, True,
      "The ONE person to talk to about this project. Shown on every card. Use a real "
      "name, spelled consistently — separate multiple people with commas."),
+    ("POC Email", 26, False, True,
+     "Work email of the point of contact. This becomes a live 'email them' link on the "
+     "dashboard, and it is how someone from another team asks for a change. Without it "
+     "a reader can see the name but has no way to reach the person."),
     ("Contributors", 20, True, False,
      "Anyone else involved, comma separated. These appear under 'Built with'."),
-    ("What It Is About", 60, True, True,
-     "Two or three sentences a newcomer could understand: what this project is and what "
-     "it produced. This is the first thing anyone reads on the dashboard."),
-    ("How It Was Built", 60, True, False,
-     "How it was actually put together — the tool or stack (Apps Script, Sheet, deck), "
-     "where the data comes from, the approach, and any decision worth knowing about."),
-    ("Why It Was Built", 60, True, False,
-     "Why this was picked up at all — the problem, the request, the decision it had to "
-     "support. NOT what changed afterwards; that goes in Impact. The old tracker had no "
-     "column for this, which is why most projects cannot answer it."),
-    ("Impact / What Changed", 50, True, False,
-     "What was different afterwards. Numbers if you have them."),
-    ("Time Saved", 16, True, False, "e.g. '2 hours a week'. Leave blank if unknown."),
-    ("Money Saved", 16, True, False, "e.g. 'Rs 40,000/month'. Leave blank if unknown."),
+    # One description column, not three. How / Why / Impact were folded in here: asking
+    # busy people to fill four prose boxes got four empty boxes.
+    ("What It Is About", 78, True, True,
+     "A brief description in your own words — what this is, roughly how it was put "
+     "together, and why it exists. Two or three sentences is plenty. Assume the reader "
+     "has never heard of it and does not work in your vertical."),
     ("Start Date", 13, False, False, "When work began. Format dd-mm-yyyy."),
     ("Completed Date", 14, False, False,
-     "Leave blank while the project is still open."),
+     "When it went live. Shown under History on the dashboard."),
     ("Steps / Checklist", 46, True, False,
-     "One step per line, each starting with [x] for done or [ ] for outstanding. "
-     "Example:\n[x] Collected the data\n[ ] Waiting on Marketing\n"
-     "The dashboard turns this into a progress bar and a checklist."),
-    ("Links", 40, True, False,
-     "One URL per line — the dashboard reads each link's address to work out what the "
-     "project was built as (Apps Script, Sheet, Doc, deck)."),
-    ("Notes", 34, True, False, "Anything else worth recording."),
+     "How it came together, one step per line, each starting with [x] for done or "
+     "[ ] for outstanding. Example:\n[x] Collected the data\n[ ] Waiting on Marketing\n"
+     "Shown as a checklist under 'How it was built'."),
+    ("Links", 40, True, True,
+     "One URL per line — the sheet, doc, dashboard or script itself. This becomes the "
+     "'Open the build' button, so without it a reader cannot get to the actual thing. "
+     "The dashboard also reads each address to work out what the project was built as."),
 ]
 
 INK = "1D1D1F"
@@ -108,32 +102,34 @@ GUIDE = [
      "left to right; hover any heading for a fuller explanation of what belongs in it.",
      "body"),
     ("", ""),
-    ("The four that matter most", "h2"),
-    ("Point of Contact — the one person someone should ask about this project.", "bullet"),
-    ("What It Is About — two or three sentences a newcomer could follow.", "bullet"),
-    ("How It Was Built — the tool, the data source, the approach.", "bullet"),
-    ("Why It Was Built — the reason it was picked up in the first place.", "bullet"),
+    ("Only list projects that are currently IN USE", "h2"),
+    ("This is a catalogue of what the organisation can actually use today — not a "
+     "history of everything the team has worked on. If nobody uses a thing any more, "
+     "leave it out.", "body"),
     ("", ""),
-    ("'Why' is not the same as 'Impact'. Why is the problem that caused the work to "
-     "start; Impact is what was different once it shipped. The old tracker only had "
-     "Impact, which is why most existing projects show 'no stated rationale' on the "
-     "dashboard.", "body"),
+    ("The four that matter", "h2"),
+    ("What It Is About — a brief description: what it is, roughly how it was built, "
+     "and why. Two or three sentences.", "bullet"),
+    ("Point of Contact — the one person someone should ask about this project.", "bullet"),
+    ("POC Email — so a reader from another team can actually reach them.", "bullet"),
+    ("Links — the sheet, doc or dashboard itself. This is the 'Open the build' button.",
+     "bullet"),
     ("", ""),
     ("Nothing here is fixed", "h2"),
     ("This sheet belongs to the team, not to the tool. You can add or delete rows, add "
-     "new verticals or statuses on the 'Lists' tab, reorder them, or add your own "
-     "columns — the dashboard follows whatever the sheet says.", "body"),
-    ("Add a vertical or a status: put it on the 'Lists' tab and it becomes a dropdown "
-     "option and a filter.", "bullet"),
+     "new verticals on the 'Lists' tab, or add your own columns — the dashboard follows "
+     "whatever the sheet says.", "body"),
+    ("Add a vertical: put it on the 'Lists' tab and it becomes a dropdown option and a "
+     "filter.", "bullet"),
     ("Add a column: just add it. It shows up on each project's page under 'Also "
      "recorded'. No one needs to change any code.", "bullet"),
     ("Delete a column you don't want: that section stops appearing.", "bullet"),
     ("The one column that must stay is 'Project Name'.", "bullet"),
     ("", ""),
     ("Rules", "h2"),
-    ("Status, Priority and Vertical have dropdowns so spellings stay consistent — but "
-     "none of them block you. Type a new value whenever you need one, and add it to the "
-     "'Lists' tab so everyone else gets it in their dropdown too.", "bullet"),
+    ("Vertical has a dropdown so spellings stay consistent, but it does not block you. "
+     "Type a new value whenever you need one, and add it to the 'Lists' tab so everyone "
+     "else gets it in their dropdown too.", "bullet"),
     ("Leave anything you genuinely do not know BLANK. The dashboard shows an honest "
      "'not recorded yet' note for empty fields. Please do not guess or pad — a blank is "
      "more useful than a made-up sentence.", "bullet"),
@@ -213,17 +209,12 @@ def seed_rows(legacy: Path) -> list[dict]:
             "ID": int(float(raw_id)) if raw_id.replace(".", "").isdigit() else None,
             "Project Name": name,
             "Vertical": _text(m.get("Vertical")),
-            "Status": _text(m.get("Status")),
-            "Priority": _text(m.get("Priority")),
             "Point of Contact": _text(m.get("Answerable To")),
+            "POC Email": "",   # never on record in the old tracker; never invented
+
             "Contributors": _text(m.get("Dependencies")),
             # `Process Done` is the old sheet's "what was done" column.
             "What It Is About": _strip_urls(d.get("Process Done")),
-            "How It Was Built": "",   # never captured — must not be invented
-            "Why It Was Built": "",   # never captured — must not be invented
-            "Impact / What Changed": _text(d.get("Impact")),
-            "Time Saved": _text(d.get("Time Saved")),
-            "Money Saved": _text(d.get("Money Saved")),
             "Start Date": _date(d.get("Created")),
             "Completed Date": _date(d.get("Completed")),
             "Steps / Checklist": _text(m.get("Subtasks")) or _text(d.get("Subtasks")),
@@ -277,27 +268,21 @@ def build(rows: list[dict]) -> Workbook:
 
     # ---- lists (dropdown sources) ---------------------------------------
     ls = wb.create_sheet(LISTS_SHEET)
-    ls["A1"], ls["B1"], ls["C1"] = "Status", "Priority", "Vertical"
-    for col, values in enumerate([STATUSES, PRIORITIES, sorted(VERTICALS)], start=1):
-        ls.cell(row=1, column=col).font = Font(bold=True)
-        for r, v in enumerate(values, start=2):
-            ls.cell(row=r, column=col, value=v)
-    ls.column_dimensions["A"].width = 16
-    ls.column_dimensions["B"].width = 16
-    ls.column_dimensions["C"].width = 20
-    ls["E1"] = "These feed the dropdowns on the Projects sheet."
-    ls["E2"] = ("Add a row to any column here and it becomes a new option straight away — "
-                "no permission needed, nothing to rebuild.")
-    ls["E3"] = ("The Status column also sets the ORDER of the filters on the dashboard. "
-                "Reorder these rows and the dashboard reorders with them.")
-    ls["E4"] = ("You can delete options too. Just keep the three headings in row 1 as "
-                "they are, so the dropdowns keep finding them.")
-    ls["E1"].font = Font(bold=True, size=11, color="1D1D1F")
-    for ref in ("E2", "E3", "E4"):
+    ls["A1"] = "Vertical"
+    ls["A1"].font = Font(bold=True)
+    for r, v in enumerate(sorted(VERTICALS), start=2):
+        ls.cell(row=r, column=1, value=v)
+    ls.column_dimensions["A"].width = 22
+    ls["C1"] = "This feeds the Vertical dropdown on the Projects sheet."
+    ls["C2"] = ("Add a row above and it becomes a new option straight away — no "
+                "permission needed, nothing to rebuild. You can delete options too.")
+    ls["C3"] = ("Keep the heading in A1 as it is, so the dropdown keeps finding the list.")
+    ls["C1"].font = Font(bold=True, size=11, color="1D1D1F")
+    for ref in ("C2", "C3"):
         ls[ref].font = Font(size=10, color="6E6E73")
         ls[ref].alignment = Alignment(wrap_text=True, vertical="top")
-    ls.column_dimensions["E"].width = 88
-    for r in (2, 3, 4):
+    ls.column_dimensions["C"].width = 88
+    for r in (2, 3):
         ls.row_dimensions[r].height = 28
 
     # ---- projects --------------------------------------------------------
@@ -356,12 +341,7 @@ def build(rows: list[dict]) -> Workbook:
         ws.add_data_validation(dv)
         dv.add(f"{letter}2:{letter}{LAST_ROW}")
 
-    add_dv("Status", "A",
-           "Pick a status, or type a new one. To add it to this dropdown for everyone, "
-           "put it on the Lists tab.")
-    add_dv("Priority", "B",
-           "Pick a priority, or type a new one. Add it to the Lists tab to share it.")
-    add_dv("Vertical", "C",
+    add_dv("Vertical", "A",
            "Pick a vertical, or type a new one. Add it to the Lists tab to share it.")
 
     ws.freeze_panes = "C2"
