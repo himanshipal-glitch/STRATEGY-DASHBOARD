@@ -137,7 +137,16 @@ html, body, [class*="st-"], .stApp {{
   font-family: {FONT_STACK};
   -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;
 }}
-.stApp {{ background: {b['bg']}; }}
+/* Warm washes so the page reads as paper rather than a flat fill. Very low alpha -
+   they should be felt, not seen. */
+.stApp {{
+  background:
+    radial-gradient(1000px 560px at 8% -8%, rgba(194,96,61,.055), transparent 62%),
+    radial-gradient(900px 520px at 95% 4%, rgba(212,162,76,.075), transparent 64%),
+    radial-gradient(700px 700px at 70% 96%, rgba(125,140,92,.045), transparent 66%),
+    {b['bg']};
+  background-attachment: fixed;
+}}
 .block-container {{
   padding-top: 1.5rem !important; padding-bottom: 6rem !important; max-width: 1120px;
 }}
@@ -260,10 +269,15 @@ div[class*="st-key-cats"] button[data-testid="stBaseButton-pillsActive"] {{
 div[class*="st-key-cats"] button p {{ font-size: .81rem !important; }}
 
 /* compact refine selects (always visible - st.expander needs an icon font) */
+/* Sentence case, not shouty uppercase - the old labels were eating a whole band of
+   vertical space above the grid for three filters. */
 div[class*="st-key-refine"] label {{
-  font-size: .68rem !important; font-weight: 600 !important; letter-spacing: .07em;
-  text-transform: uppercase; color: {b['ink_200']} !important;
+  font-size: .72rem !important; font-weight: 600 !important; letter-spacing: .01em;
+  text-transform: none !important; color: {b['ink_300']} !important;
+  margin-bottom: 2px !important;
 }}
+div[class*="st-key-refine"] label p {{ text-transform: none !important; }}
+div[class*="st-key-refine"] {{ margin-bottom: -6px; }}
 div[class*="st-key-refine"] div[data-baseweb="select"] > div {{
   border-radius: 10px !important; border-color: {b['hairline_soft']} !important;
   background: {b['bg_alt']} !important; font-size: .82rem !important; min-height: 34px;
@@ -308,10 +322,9 @@ div[class*="st-key-go_"] button {{
   padding: 0 !important; min-height: 0 !important; box-shadow: none !important;
 }}
 /* card interior: vertical label on top, serif title, blurb, then a footer rule */
-.idx {{
-  position: relative; display: flex; flex-direction: column;
-  height: 100%; min-height: 210px;
-}}
+/* No min-height: Streamlit's columns already equalise card heights across a row, so
+   forcing one only manufactured empty space inside sparse cards. */
+.idx {{ position: relative; display: flex; flex-direction: column; height: 100%; }}
 /* The coloured spine. It lives on .idx rather than on the card container because the
    inline --spine custom property is set here, and custom properties inherit downwards
    only - a rule on the parent container could never see it. The negative offsets cancel
@@ -320,24 +333,40 @@ div[class*="st-key-go_"] button {{
   content: ""; position: absolute; left: -26px; top: -22px; bottom: -20px; width: 5px;
   background: var(--spine, {b['accent']}); border-radius: 0;
 }}
+/* vertical label and the built-with chip share the top line */
+/* Wraps rather than squeezes: in a narrow card the chip drops to its own line instead
+   of crushing the vertical name into "OPERATI...". Never truncate the label. */
+.idx-head {{
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 6px 10px; margin-bottom: 12px; flex-wrap: wrap;
+}}
 .idx-vert {{
-  font-size: .645rem; font-weight: 700; letter-spacing: .13em; text-transform: uppercase;
-  color: var(--spine, {b['accent']}); margin-bottom: 12px;
+  font-size: .645rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase;
+  color: var(--spine, {b['accent']}); white-space: nowrap; flex: 0 1 auto;
 }}
 .idx-title {{
   font-family: {SERIF_STACK};
   font-size: 1.22rem; font-weight: 400; color: {b['ink']};
   letter-spacing: -.008em; line-height: 1.26; margin-bottom: 10px;
+  overflow-wrap: break-word;
 }}
 .idx-desc {{
-  font-size: .85rem; color: {b['ink_400']}; line-height: 1.55; margin-bottom: 18px;
+  font-size: .85rem; color: {b['ink_400']}; line-height: 1.55; margin-bottom: 12px;
   display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
 }}
-.idx-desc.is-empty {{ color: {b['ink_200']}; font-style: italic; }}
-.idx-foot {{
-  margin-top: auto; padding-top: 14px; border-top: 1px solid {b['hairline_soft']};
-  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+.idx-desc.is-empty {{ color: {b['ink_200']}; font-style: italic; margin-bottom: 10px; }}
+/* factual chips that fill a card with no write-up, instead of dead space */
+.idx-facts {{ display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }}
+.idx-facts span {{
+  font-size: .69rem; font-weight: 500; color: {b['ink_400']};
+  background: {b['bg_alt']}; border-radius: 6px; padding: 3px 8px; white-space: nowrap;
 }}
+.idx-foot {{
+  margin-top: auto; padding-top: 13px; border-top: 1px solid {b['hairline_soft']};
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  min-width: 0;
+}}
+.idx-foot > span {{ min-width: 0; overflow: hidden; }}
 /* our own chevron - no icon font (Google Fonts is blocked on this network) */
 .idx-chev {{
   width: 8px; height: 8px; flex: none;
@@ -348,11 +377,15 @@ div[class*="st-key-row_"]:hover .idx-chev {{
   border-color: {b['accent']}; transform: rotate(45deg) translate(3px, -3px);
 }}
 
-/* "built with" - what the thing actually is, read from the linked file's host */
+/* "built with" - what the thing actually is, read from the linked file's host.
+   nowrap + ellipsis is essential: inside a narrow card "Apps Script web app" otherwise
+   wraps to four lines and turns the chip into a tall blob. */
 .builtwith {{
-  display: inline-block; font-size: .705rem; font-weight: 500; color: {b['ink_400']};
+  display: inline-block; font-size: .68rem; font-weight: 500; color: {b['ink_400']};
   background: {b['bg_alt']}; border: 1px solid {b['hairline_soft']};
-  border-radius: {r['chip']}; padding: 3px 10px; line-height: 1.35;
+  border-radius: {r['chip']}; padding: 3px 9px; line-height: 1.4;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  max-width: 55%; flex: none;
 }}
 
 /* delivery detail: a quiet grid at the foot of a build page, never the headline */
@@ -383,6 +416,7 @@ div[class*="st-key-row_"]:hover .idx-chev {{
 .person {{
   display: inline-flex; align-items: center; gap: 6px;
   font-size: .785rem; color: {b['ink_600']}; font-weight: 500;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%;
 }}
 .person-avatar {{
   width: 21px; height: 21px; border-radius: 50%; flex: none;
@@ -514,8 +548,9 @@ div[class*="st-key-back"] .stButton > button:hover {{
 
 /* ---- notes ---------------------------------------------------------- */
 .gap-note {{
-  border-left: 2px solid {b['hairline']}; padding: 4px 0 4px 16px;
-  font-size: .85rem; color: {b['ink_400']}; line-height: 1.6; max-width: 78ch;
+  border-left: 3px solid {b['gold']}; background: {b['bg_alt']};
+  border-radius: 0 {r['panel']} {r['panel']} 0; padding: 14px 18px;
+  font-size: .84rem; color: {b['ink_400']}; line-height: 1.55; max-width: 82ch;
 }}
 .gap-note b {{ color: {b['ink_600']}; font-weight: 600; }}
 .gap-note code {{

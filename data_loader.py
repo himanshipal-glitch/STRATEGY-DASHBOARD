@@ -117,17 +117,19 @@ KNOWN_HEADERS = {
 # Without a project name there is no project, so this is the one hard requirement.
 REQUIRED_HEADERS = ("Project Name", "Project", "Task", "Name")
 
+# Kept short on purpose: these render as chips inside narrow cards, and long labels like
+# "Apps Script web app" wrapped to four lines and turned the chip into a tall blob.
 ARTIFACT_KINDS = [
-    ("script.google.com", "Apps Script web app"),
-    ("docs.google.com/spreadsheets", "Google Sheet"),
-    ("docs.google.com/document", "Google Doc"),
-    ("docs.google.com/presentation", "Google Slides"),
+    ("script.google.com", "Apps Script"),
+    ("docs.google.com/spreadsheets", "Sheet"),
+    ("docs.google.com/document", "Doc"),
+    ("docs.google.com/presentation", "Slides"),
     ("drive.google.com", "Drive file"),
-    ("lookerstudio.google.com", "Looker Studio"),
-    ("datastudio.google.com", "Looker Studio"),
-    ("figma.com", "Figma file"),
-    ("notion.so", "Notion page"),
-    ("github.com", "GitHub repo"),
+    ("lookerstudio.google.com", "Looker"),
+    ("datastudio.google.com", "Looker"),
+    ("figma.com", "Figma"),
+    ("notion.so", "Notion"),
+    ("github.com", "GitHub"),
 ]
 
 

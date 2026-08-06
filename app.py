@@ -154,8 +154,14 @@ def file_mtime(path_or_url: str) -> float:
 
 
 def data_source() -> str:
-    """The workbook path or Google Sheets URL currently in use."""
-    return st.session_state.get("workbook_path", DEFAULT_SOURCE).strip().strip('"')
+    """The workbook path or Google Sheets URL currently in use.
+
+    The configured source (Streamlit secrets, or a local file) wins unless someone types
+    an override in the footer. The override is deliberately a separate, empty-by-default
+    field so the real URL is never rendered back to the page - this app is public.
+    """
+    override = str(st.session_state.get("source_override", "")).strip().strip('"')
+    return override or DEFAULT_SOURCE
 
 
 def source_exists(source: str) -> bool:
@@ -324,6 +330,33 @@ def row_summary(p: Project) -> tuple[str, bool]:
     return "No write-up yet.", False
 
 
+def card_facts(p: Project) -> str:
+    """Small factual chips shown when a build has no write-up.
+
+    Every one of these is read straight from the sheet - step counts, linked files,
+    dates, savings. Nothing is invented; the point is to fill an otherwise empty card
+    with things we genuinely know rather than dead space.
+    """
+    bits: list[str] = []
+    if p.steps:
+        bits.append(f"{p.steps_done}/{len(p.steps)} steps done")
+    if p.links:
+        bits.append(plural(len(p.links), "linked file"))
+    if p.collaborators:
+        bits.append(f"{plural(len(p.collaborators), 'contributor')}")
+    if p.completed is not None:
+        bits.append(f"done {fmt_date(p.completed)}")
+    elif p.created is not None:
+        bits.append(f"started {fmt_date(p.created)}")
+    if p.time_saved:
+        bits.append(f"saves {p.time_saved}")
+    if not bits:
+        return ""
+    return ('<div class="idx-facts">'
+            + "".join(f"<span>{esc(b)}</span>" for b in bits[:3])
+            + "</div>")
+
+
 def render_row(p: Project, n: int, spine: str = "") -> None:
     """One card: what it is, what it was built as, and who to ask.
 
@@ -336,11 +369,15 @@ def render_row(p: Project, n: int, spine: str = "") -> None:
     with st.container(key=f"row_{p.pid}"):
         st.markdown(
             f'<div class="idx" style="--spine:{spine}">'
-            f'<div class="idx-vert">{esc(p.vertical)}</div>'
+            # Vertical and "built with" share the top row. Keeping the built-with chip
+            # out of the footer stops it wrapping into a tall blob in a narrow card.
+            f'<div class="idx-head"><span class="idx-vert">{esc(p.vertical)}</span>'
+            f"{built_with_tag(p)}</div>"
             f'<div class="idx-title">{esc(p.name)}</div>'
             f'<div class="idx-desc{"" if is_real else " is-empty"}">{esc(summary)}</div>'
+            f'{"" if is_real else card_facts(p)}'
             f'<div class="idx-foot">{people_row(p.owners, "No POC recorded")}'
-            f'{built_with_tag(p)}<div class="idx-chev"></div></div>'
+            f'<div class="idx-chev"></div></div>'
             f"</div>",
             unsafe_allow_html=True,
         )
@@ -590,11 +627,19 @@ def render_footer(source: str) -> None:
     left, right = st.columns([2.4, 1], vertical_alignment="bottom")
     with left:
         st.markdown('<div class="foot-label">Data source</div>', unsafe_allow_html=True)
+        # NEVER print the sheet URL here. This page is public, and rendering the URL
+        # would hand the sheet to every visitor - exactly what moving it into secrets
+        # was meant to prevent. Show what kind of source it is; let an override be typed.
+        if is_google_sheet(source):
+            st.caption("Google Sheet \N{MIDDLE DOT} configured in Streamlit secrets")
+        else:
+            st.caption(f"Local file \N{MIDDLE DOT} `{Path(source).name}`")
         st.text_input(
-            "Workbook path or Google Sheets link", key="workbook_path",
+            "Point somewhere else", key="source_override",
+            placeholder="Paste a different Google Sheets link or .xlsx path",
             label_visibility="collapsed",
-            help="A local .xlsx path, or a Google Sheets URL pasted from the address "
-                 "bar. For a Google Sheet, set link sharing to 'Anyone with the link'.",
+            help="Leave blank to use the configured source. For a Google Sheet, set "
+                 "link sharing to 'Anyone with the link'.",
         )
     with right:
         spacer(4)
@@ -624,7 +669,7 @@ def render_footer(source: str) -> None:
 # Main
 # ---------------------------------------------------------------------------
 def main() -> None:
-    st.session_state.setdefault("workbook_path", DEFAULT_SOURCE)
+    st.session_state.setdefault("source_override", "")
 
     # Deep links: ?project=<id> survives a refresh and can be shared.
     if "project" in st.query_params and "selected" not in st.session_state:
