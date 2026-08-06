@@ -480,17 +480,28 @@ div[class*="st-key-back"] .stButton > button:hover {{
 .dmeta .status {{ color: {b['on_dark']}; }}
 .dmeta .vert {{ background: rgba(255,255,255,.09); color: {b['on_dark']}; }}
 .dmeta .person {{ color: {b['on_dark']}; }}
-/* "edit in the sheet" - the dashboard is read-only, so this is the real affordance */
-.edit-link {{
-  display: inline-block; margin-top: 26px;
-  font-size: .82rem; font-weight: 500; color: {b['on_dark']} !important;
+/* Actions on a build page: open the thing, or contact its owner. The dashboard is
+   read-only, so these links out are the real affordances. */
+.acts {{ display: flex; flex-wrap: wrap; gap: 10px; margin-top: 28px; }}
+.act {{
+  display: inline-block; font-size: .82rem; font-weight: 500;
+  color: {b['on_dark']} !important;
   background: rgba(255,255,255,.10); border: 1px solid rgba(255,255,255,.16);
-  border-radius: {r['chip']}; padding: .4rem 1rem; text-decoration: none !important;
+  border-radius: {r['chip']}; padding: .44rem 1.05rem; text-decoration: none !important;
   transition: background .16s ease, border-color .16s ease;
 }}
-.edit-link:hover {{
-  background: rgba(255,255,255,.17); border-color: rgba(255,255,255,.3);
+.act:hover {{ background: rgba(255,255,255,.18); border-color: rgba(255,255,255,.32); }}
+.act-primary {{
+  background: {b['accent']}; border-color: {b['accent']}; color: #fff !important;
+  font-weight: 600;
 }}
+.act-primary:hover {{ background: {b['accent_hover']}; border-color: {b['accent_hover']}; }}
+/* no email on file: state who to ask rather than fake a mailto */
+.act-quiet {{
+  background: transparent; border-style: dashed; border-color: rgba(255,255,255,.22);
+  color: {b['on_dark_dim']} !important; cursor: default;
+}}
+.act-quiet:hover {{ background: transparent; border-color: rgba(255,255,255,.22); }}
 .dmeta .person-avatar {{
   background: rgba(255,255,255,.11); color: {b['on_dark']}; border-color: rgba(255,255,255,.16);
 }}

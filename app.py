@@ -337,17 +337,16 @@ def card_facts(p: Project) -> str:
     dates, savings. Nothing is invented; the point is to fill an otherwise empty card
     with things we genuinely know rather than dead space.
     """
+    # Deliberately NO step counts. "3/5 steps done" is delivery-tracking language and
+    # this is a catalogue of finished work - it is the exact framing the review pushed
+    # back on. What a stranger wants is what it produced and when, not how it tracked.
     bits: list[str] = []
-    if p.steps:
-        bits.append(f"{p.steps_done}/{len(p.steps)} steps done")
     if p.links:
         bits.append(plural(len(p.links), "linked file"))
     if p.collaborators:
-        bits.append(f"{plural(len(p.collaborators), 'contributor')}")
+        bits.append(plural(len(p.collaborators), "contributor"))
     if p.completed is not None:
-        bits.append(f"done {fmt_date(p.completed)}")
-    elif p.created is not None:
-        bits.append(f"started {fmt_date(p.created)}")
+        bits.append(fmt_date(p.completed))
     if p.time_saved:
         bits.append(f"saves {p.time_saved}")
     if not bits:
@@ -477,6 +476,35 @@ def how_extra_html(p: Project) -> str:
     return parts
 
 
+def action_row_html(p: Project, source: str) -> str:
+    """The two things a stranger actually wants: open the thing, or ask its owner.
+
+    Both are only rendered when the sheet genuinely carries the information. An email is
+    never constructed from a person's name - if the sheet has no email column, the page
+    says who to ask rather than inventing an address that might reach the wrong person.
+    """
+    parts = []
+    if p.links:
+        parts.append(
+            f'<a class="act act-primary" href="{esc(p.links[0].url)}" target="_blank" '
+            f'rel="noopener">Open the build \N{RIGHTWARDS ARROW}</a>'
+        )
+    if p.poc_email:
+        who = p.owners[0] if p.owners else "the point of contact"
+        subject = f"About: {p.name}"
+        parts.append(
+            f'<a class="act" href="mailto:{esc(p.poc_email)}?subject={esc(subject)}">'
+            f"Email {esc(who)}</a>"
+        )
+    elif p.owners:
+        parts.append(
+            f'<span class="act act-quiet">Ask {esc(", ".join(p.owners))} about changes'
+            f"</span>"
+        )
+    parts.append(edit_link_html(p, source))
+    return f'<div class="acts">{"".join(x for x in parts if x)}</div>'
+
+
 def edit_link_html(p: Project, source: str) -> str:
     """Link to the sheet so editing is one click away.
 
@@ -488,8 +516,8 @@ def edit_link_html(p: Project, source: str) -> str:
         return ""
     where = f" &middot; row {p.sheet_row}" if p.sheet_row else ""
     return (
-        f'<a class="edit-link" href="{esc(source)}" target="_blank" rel="noopener">'
-        f"Edit this project in the sheet{where} \N{RIGHTWARDS ARROW}</a>"
+        f'<a class="act" href="{esc(source)}" target="_blank" rel="noopener">'
+        f"Edit in the sheet{where}</a>"
     )
 
 
@@ -527,7 +555,7 @@ def render_detail(p: Project, all_projects: list[Project], source: str = "") -> 
             f'<div class="dmeta-value">{value}</div></div>'
             for label, value in meta
         )
-        + f"</div>{edit_link_html(p, source)}</div>",
+        + f"</div>{action_row_html(p, source)}</div>",
         unsafe_allow_html=True,
     )
 
@@ -571,16 +599,17 @@ def render_detail(p: Project, all_projects: list[Project], source: str = "") -> 
     if impact:
         qa_section("What changed", impact, "")
 
-    # Delivery detail, deliberately last and deliberately quiet: useful if you go looking,
-    # never the headline. This is where status/priority/dates live now.
+    # History, not delivery tracking: when it ran and what it saved. Status and priority
+    # are intentionally absent - this catalogue lists finished work, so "is it done?" is
+    # not a question a reader should have to ask.
     facts = [(k, v) for k, v in (
-        ("Status", esc(p.status)),
-        ("Priority", esc(p.priority)),
-        ("Timeline", esc(timeline) if timeline != "Not recorded" else ""),
+        ("When", esc(timeline) if timeline != "Not recorded" else ""),
+        ("Time saved", esc(p.time_saved)),
+        ("Money saved", esc(p.money_saved)),
     ) if v]
     if facts:
         st.markdown(
-            '<div class="qa"><h3>Delivery detail</h3><div class="meta-grid">'
+            '<div class="qa"><h3>History</h3><div class="meta-grid">'
             + "".join(
                 f'<div class="meta-item"><div class="meta-label">{esc(k)}</div>'
                 f'<div class="meta-value">{v}</div></div>' for k, v in facts
@@ -731,9 +760,19 @@ def main() -> None:
 def render_gap_banner_slot(all_projects: list[Project]) -> None:
     undescribed = [p for p in all_projects if not p.has_description]
     no_why = [p for p in all_projects if not p.why_blocks()]
-    if not (undescribed or no_why):
+    no_email = not any(p.poc_email for p in all_projects)
+    if not (undescribed or no_why or no_email):
         return
     bits = []
+    # The registry's core promise is "find the build, then contact its owner". Without an
+    # email column the second half only half-works, so say so rather than quietly
+    # degrading to a name. Addresses are never guessed from names.
+    if not any(p.poc_email for p in all_projects):
+        bits.append(
+            "<b>No contact addresses on file.</b> Add a <i>POC Email</i> column to the "
+            "sheet and each build gets a working email link, so anyone can reach the "
+            "owner directly."
+        )
     if undescribed:
         bits.append(
             f"<b>{len(undescribed)} of {len(all_projects)} builds have no description "

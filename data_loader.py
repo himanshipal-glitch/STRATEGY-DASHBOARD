@@ -113,6 +113,7 @@ KNOWN_HEADERS = {
     "impactwhatchanged", "impact", "timesaved", "moneysaved",
     "startdate", "created", "completeddate", "completed",
     "stepschecklist", "steps", "subtasks", "links", "link", "notes",
+    "pocemail", "pointofcontactemail", "email", "contact", "contactemail",
 }
 # Without a project name there is no project, so this is the one hard requirement.
 REQUIRED_HEADERS = ("Project Name", "Project", "Task", "Name")
@@ -184,6 +185,11 @@ class Project:
     # 1-based row on the Projects sheet, so the UI can send someone straight to the row
     # they need to edit. 0 when unknown (legacy format).
     sheet_row: int = 0
+
+    # Optional contact address for the point of contact. The whole point of the registry
+    # is that a stranger can reach the owner, so if the sheet carries an email we turn it
+    # into a mailto link. Never invented - if the column is absent, the UI says so.
+    poc_email: str = ""
 
     # authored prose from overrides.json
     authored: dict[str, str] = field(default_factory=dict)
@@ -450,6 +456,12 @@ def _status_order(sheets: dict[str, pd.DataFrame], seen: list[str]) -> list[str]
     return [s for s in ordered if s in seen] or seen
 
 
+def _first_email(value) -> str:
+    """First email address in a cell, or "". Never constructs one from a name."""
+    m = re.search(r"[\w.+-]+@[\w-]+\.[\w.-]+", _text(value))
+    return m.group(0) if m else ""
+
+
 def _row_number(index_value) -> int:
     """Sheet row for a pandas index value: +2 for the header and the 0-based index."""
     try:
@@ -535,6 +547,10 @@ def _load_new_format(df: pd.DataFrame, overrides: dict) -> tuple[list[Project], 
             # and pandas' 0-based index. Converted with a try rather than an isinstance
             # check: the index is a numpy.int64, which is NOT a Python int on Windows.
             sheet_row=_row_number(raw.name),
+            poc_email=_first_email(
+                _pick(row, cols, "POC Email", "Point of Contact Email", "Email",
+                      "Contact", "Contact Email")
+            ),
         )
         # Columns the team invented: kept verbatim and shown on the detail page.
         for norm_name, actual in cols.items():
