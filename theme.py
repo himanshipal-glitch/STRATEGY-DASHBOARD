@@ -27,26 +27,55 @@ REDLINE HERE — nothing else in the codebase hardcodes a colour.
 # "#0071E3" for pure Apple blue, or BRAND["ink"] to go fully monochrome.
 # ---------------------------------------------------------------------------
 BRAND = {
-    "ink": "#1D1D1F",            # primary text, near-black
-    "ink_600": "#424245",        # body
-    "ink_400": "#6E6E73",        # secondary
-    "ink_300": "#86868B",        # captions
-    "ink_200": "#A1A1A6",        # dormant
-    "hairline": "#D2D2D7",       # control borders
-    "hairline_soft": "#E8E8ED",  # row rules
-    "bg": "#FFFFFF",
-    "bg_alt": "#F5F5F7",         # recessed panels
-    "bg_hover": "#FAFAFA",       # row hover
-    "surface": "#FFFFFF",
-    "dark": "#000000",           # hero base
-    "dark_2": "#1A1A1C",         # hero gradient end
-    "on_dark": "#F5F5F7",        # text on the dark panel
-    "on_dark_dim": "#98989D",
-    "accent": "#1D6F42",
-    "accent_hover": "#175935",
-    "accent_soft": "#EFF4F0",
-    "alert": "#B3261E",          # blocked status dot only
+    "ink": "#1A1614",            # primary text, warm near-black
+    "ink_600": "#3D352F",        # body
+    "ink_400": "#6B5F56",        # secondary
+    "ink_300": "#8C7F74",        # captions
+    "ink_200": "#AEA298",        # dormant
+    "hairline": "#DDD3C6",       # control borders, warm
+    "hairline_soft": "#EBE3D8",  # inner rules
+    "bg": "#FAF7F2",             # cream page
+    "bg_alt": "#F2ECE3",         # recessed panels
+    "bg_hover": "#F6F1E9",
+    "surface": "#FFFFFF",        # cards sit brighter than the page
+    "dark": "#1A1614",           # hero base, warm not pure black
+    "dark_2": "#2A231E",         # hero gradient end
+    "on_dark": "#F7F2EA",
+    "on_dark_dim": "#B3A698",
+    "accent": "#C2603D",         # terracotta
+    "accent_hover": "#A44E2F",
+    "accent_soft": "#F7EBE4",
+    "gold": "#D4A24C",           # secondary warm accent
+    "alert": "#B3261E",
 }
+
+# One spine colour per vertical. Warm-family hues only, so a page full of them still
+# reads as one palette rather than a pie chart.
+SPINE_COLOURS = [
+    "#C2603D",  # terracotta
+    "#D4A24C",  # gold
+    "#7D8C5C",  # olive
+    "#8C6A8E",  # mauve
+    "#5F7F80",  # teal-grey
+    "#9C6B4E",  # umber
+    "#B5745E",  # clay
+    "#A08A5B",  # brass
+    "#6E7BA0",  # slate blue
+    "#A85F6A",  # rosewood
+]
+
+
+def spine_map(verticals) -> dict[str, str]:
+    """Assign a colour to each vertical BY SORTED POSITION, not by hashing the name.
+
+    Hashing looked tidy but collided badly - Finance, Operations and OPM all landed on
+    the same hue. Position-based assignment guarantees distinct colours until the palette
+    runs out, and sorting keeps them stable as projects are added or removed.
+    """
+    return {
+        v: SPINE_COLOURS[i % len(SPINE_COLOURS)]
+        for i, v in enumerate(sorted({str(x) for x in verticals}))
+    }
 
 # Status is a 6px dot beside plain text — no coloured pills. The dot encodes urgency:
 # accent = done, ink = active now, greys = dormant, muted red = blocked.
@@ -69,14 +98,19 @@ _STATUS_RULES: list[tuple[tuple[str, ...], str, str]] = [
 ]
 _STATUS_FALLBACK = (BRAND["ink_300"], "#8E8E93")
 
-RADIUS = {"hero": "28px", "card": "18px", "chip": "980px", "panel": "12px"}
+RADIUS = {"hero": "24px", "card": "20px", "chip": "980px", "panel": "14px"}
 
-# System stack only — deliberately no @import. Segoe UI Variable is what Windows 11
-# resolves to here and it is a good match for SF Pro's metrics.
+# System stack only — deliberately no @import (Google Fonts is blocked on this network).
 FONT_STACK = (
     "-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', "
     "'Segoe UI Variable Display', 'Segoe UI Variable', 'Segoe UI', "
     "Roboto, Helvetica, Arial, sans-serif"
+)
+# Display face for headings — the editorial note. All of these ship with Windows or
+# macOS, so it degrades to a real serif everywhere rather than falling back to sans.
+SERIF_STACK = (
+    "'Iowan Old Style', 'Palatino Linotype', Palatino, 'Book Antiqua', "
+    "Georgia, 'Times New Roman', serif"
 )
 MONO_STACK = "'SF Mono', 'Cascadia Mono', 'Segoe UI Mono', ui-monospace, monospace"
 
@@ -134,11 +168,12 @@ a:hover {{ text-decoration: underline; }}
 }}
 .hero-eyebrow {{
   font-size: .69rem; font-weight: 600; letter-spacing: .18em; text-transform: uppercase;
-  color: {b['on_dark_dim']}; margin-bottom: 22px;
+  color: {b['gold']}; margin-bottom: 22px;
 }}
 .hero h1 {{
-  font-size: clamp(2.3rem, 4.9vw, 3.7rem); font-weight: 600; color: #fff;
-  letter-spacing: -.038em; line-height: 1.03; margin: 0 0 20px;
+  font-family: {SERIF_STACK};
+  font-size: clamp(2.4rem, 5.1vw, 3.9rem); font-weight: 400; color: {b['on_dark']};
+  letter-spacing: -.018em; line-height: 1.06; margin: 0 0 20px;
   max-width: 21ch; text-wrap: balance;
 }}
 .hero-lede {{
@@ -156,7 +191,8 @@ a:hover {{ text-decoration: underline; }}
   width: 1px; background: rgba(255,255,255,.09);
 }}
 .hstat .n {{
-  font-size: 2.1rem; font-weight: 600; color: #fff; letter-spacing: -.035em;
+  font-family: {SERIF_STACK};
+  font-size: 2.3rem; font-weight: 400; color: {b['on_dark']}; letter-spacing: -.01em;
   line-height: 1; font-variant-numeric: tabular-nums;
 }}
 .hstat .k {{
@@ -168,7 +204,8 @@ a:hover {{ text-decoration: underline; }}
 /* ==== toolbar ======================================================== */
 .tool-head {{ display: flex; align-items: flex-end; gap: 14px; }}
 .tool-title {{
-  font-size: 1.42rem; font-weight: 600; color: {b['ink']}; letter-spacing: -.025em;
+  font-family: {SERIF_STACK};
+  font-size: 1.6rem; font-weight: 400; color: {b['ink']}; letter-spacing: -.01em;
   line-height: 1;
 }}
 .tool-sub {{ font-size: .82rem; color: {b['ink_300']}; padding-bottom: 2px; }}
@@ -232,15 +269,26 @@ div[class*="st-key-refine"] div[data-baseweb="select"] > div {{
   background: {b['bg_alt']} !important; font-size: .82rem !important; min-height: 34px;
 }}
 
-/* ==== the index ====================================================== */
+/* ==== the card grid ================================================== */
 .idx-rule {{ border-top: 1px solid {b['hairline']}; margin: 0; }}
 
-/* each row is a keyed container with an invisible full-bleed button on top */
+/* Each card is a keyed container with an invisible full-size button laid over it.
+   The left spine is a coloured bar keyed to the vertical - set inline per card. */
 div[class*="st-key-row_"] {{
-  position: relative; border-bottom: 1px solid {b['hairline_soft']};
-  transition: background .16s ease;
+  position: relative; height: 100%;
+  background: {b['surface']};
+  border: 1px solid {b['hairline_soft']};
+  border-radius: {r['card']};
+  padding: 22px 24px 20px 26px !important;
+  box-shadow: 0 1px 2px rgba(60,45,32,.04), 0 6px 16px -10px rgba(60,45,32,.10);
+  transition: box-shadow .2s ease, transform .2s ease, border-color .2s ease;
+  overflow: hidden;
 }}
-div[class*="st-key-row_"]:hover {{ background: {b['bg_hover']}; }}
+div[class*="st-key-row_"]:hover {{
+  border-color: {b['hairline']};
+  box-shadow: 0 2px 4px rgba(60,45,32,.05), 0 16px 34px -14px rgba(60,45,32,.20);
+  transform: translateY(-3px);
+}}
 /* The transparent hit target covering the whole row.
    It is the *element container* that must be positioned, not the inner .stButton:
    Streamlit's stElementContainer is itself position:relative, so absolutely positioning
@@ -259,41 +307,45 @@ div[class*="st-key-go_"] button {{
   border: 0 !important; background: transparent !important; cursor: pointer !important;
   padding: 0 !important; min-height: 0 !important; box-shadow: none !important;
 }}
+/* card interior: vertical label on top, serif title, blurb, then a footer rule */
 .idx {{
-  display: grid; grid-template-columns: 46px 1fr 156px 22px;
-  align-items: center; gap: 20px; padding: 19px 8px 19px 4px;
+  position: relative; display: flex; flex-direction: column;
+  height: 100%; min-height: 210px;
 }}
-.idx-num {{
-  font-family: {MONO_STACK}; font-size: .76rem; color: {b['ink_200']};
-  font-variant-numeric: tabular-nums; letter-spacing: .02em;
+/* The coloured spine. It lives on .idx rather than on the card container because the
+   inline --spine custom property is set here, and custom properties inherit downwards
+   only - a rule on the parent container could never see it. The negative offsets cancel
+   the container's padding (22/24/20/26) so the bar still reaches the card's edges. */
+.idx::before {{
+  content: ""; position: absolute; left: -26px; top: -22px; bottom: -20px; width: 5px;
+  background: var(--spine, {b['accent']}); border-radius: 0;
+}}
+.idx-vert {{
+  font-size: .645rem; font-weight: 700; letter-spacing: .13em; text-transform: uppercase;
+  color: var(--spine, {b['accent']}); margin-bottom: 12px;
 }}
 .idx-title {{
-  font-size: 1.04rem; font-weight: 600; color: {b['ink']};
-  letter-spacing: -.018em; line-height: 1.32; margin-bottom: 6px;
+  font-family: {SERIF_STACK};
+  font-size: 1.22rem; font-weight: 400; color: {b['ink']};
+  letter-spacing: -.008em; line-height: 1.26; margin-bottom: 10px;
 }}
 .idx-desc {{
-  font-size: .845rem; color: {b['ink_400']}; line-height: 1.45; margin-bottom: 9px;
-  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+  font-size: .85rem; color: {b['ink_400']}; line-height: 1.55; margin-bottom: 18px;
+  display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
 }}
-.idx-desc.is-empty {{ color: {b['ink_200']}; }}
-.idx-meta {{
-  display: flex; align-items: center; flex-wrap: wrap; gap: 6px 14px;
-  font-size: .785rem; color: {b['ink_300']};
+.idx-desc.is-empty {{ color: {b['ink_200']}; font-style: italic; }}
+.idx-foot {{
+  margin-top: auto; padding-top: 14px; border-top: 1px solid {b['hairline_soft']};
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
 }}
-.idx-meta .sep {{ color: {b['hairline']}; }}
-.idx-right {{ text-align: right; }}
-.idx-pri {{
-  font-size: .655rem; font-weight: 600; letter-spacing: .08em; text-transform: uppercase;
-  color: {b['ink_200']}; margin-top: 7px;
-}}
-/* our own chevron - no icon font */
+/* our own chevron - no icon font (Google Fonts is blocked on this network) */
 .idx-chev {{
-  width: 8px; height: 8px; border-right: 1.6px solid {b['ink_200']};
-  border-top: 1.6px solid {b['ink_200']}; transform: rotate(45deg);
-  transition: transform .18s ease, border-color .18s ease; justify-self: end;
+  width: 8px; height: 8px; flex: none;
+  border-right: 1.7px solid {b['ink_200']}; border-top: 1.7px solid {b['ink_200']};
+  transform: rotate(45deg); transition: transform .18s ease, border-color .18s ease;
 }}
 div[class*="st-key-row_"]:hover .idx-chev {{
-  border-color: {b['ink']}; transform: rotate(45deg) translate(2px, -2px);
+  border-color: {b['accent']}; transform: rotate(45deg) translate(3px, -3px);
 }}
 
 /* "built with" - what the thing actually is, read from the linked file's host */
@@ -377,8 +429,9 @@ div[class*="st-key-back"] .stButton > button:hover {{
   color: {b['on_dark_dim']}; margin-bottom: 16px;
 }}
 .dhero h1 {{
-  font-size: clamp(1.75rem, 3.5vw, 2.55rem); font-weight: 600; color: #fff;
-  letter-spacing: -.032em; line-height: 1.08; margin: 0 0 30px;
+  font-family: {SERIF_STACK};
+  font-size: clamp(1.9rem, 3.7vw, 2.7rem); font-weight: 400; color: {b['on_dark']};
+  letter-spacing: -.012em; line-height: 1.12; margin: 0 0 30px;
   max-width: 26ch; text-wrap: balance;
 }}
 .dmeta {{
@@ -413,9 +466,11 @@ div[class*="st-key-back"] .stButton > button:hover {{
   font-size: .685rem; font-weight: 600; letter-spacing: .14em; text-transform: uppercase;
   color: {b['ink_300']}; margin: 0 0 20px;
 }}
+.qa h3 span.authored-tag {{ font-family: {FONT_STACK}; }}
 .qa-body {{
-  font-size: 1.005rem; color: {b['ink_600']}; line-height: 1.63; white-space: pre-wrap;
-  max-width: 68ch;
+  font-family: {SERIF_STACK};
+  font-size: 1.06rem; color: {b['ink_600']}; line-height: 1.68; white-space: pre-wrap;
+  max-width: 66ch;
 }}
 .qa-source {{
   font-size: .655rem; color: {b['ink_200']}; margin: 22px 0 8px;

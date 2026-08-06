@@ -53,6 +53,8 @@ st.markdown(theme.css(), unsafe_allow_html=True)
 # sheet's Lists tab, verticals from the data, and any column the team adds shows up under
 # "Also recorded" on the detail page. See data_loader.load_projects.
 
+CARDS_PER_ROW = 3
+
 
 # ---------------------------------------------------------------------------
 # Render helpers
@@ -322,26 +324,23 @@ def row_summary(p: Project) -> tuple[str, bool]:
     return "No write-up yet.", False
 
 
-def render_row(p: Project, n: int) -> None:
-    """One catalogue entry: what it is, what it was built as, and who to ask.
+def render_row(p: Project, n: int, spine: str = "") -> None:
+    """One card: what it is, what it was built as, and who to ask.
 
-    No status, no priority, no progress bar - see render_toolbar for why.
+    No status, no priority, no progress bar - see render_toolbar for why. The `--spine`
+    custom property colours the card's left bar and its vertical label.
     """
     summary, is_real = row_summary(p)
-    meta = [people_row(p.owners, "No POC recorded"), vertical_tag(p.vertical)]
-    meta_html = '<span class="sep">·</span>'.join(f"<span>{m}</span>" for m in meta)
+    spine = spine or theme.BRAND["accent"]
 
     with st.container(key=f"row_{p.pid}"):
         st.markdown(
-            f'<div class="idx">'
-            f'<div class="idx-num">{n:02d}</div>'
-            f"<div>"
+            f'<div class="idx" style="--spine:{spine}">'
+            f'<div class="idx-vert">{esc(p.vertical)}</div>'
             f'<div class="idx-title">{esc(p.name)}</div>'
             f'<div class="idx-desc{"" if is_real else " is-empty"}">{esc(summary)}</div>'
-            f'<div class="idx-meta">{meta_html}</div>'
-            f"</div>"
-            f'<div class="idx-right">{built_with_tag(p)}</div>'
-            f'<div class="idx-chev"></div>'
+            f'<div class="idx-foot">{people_row(p.owners, "No POC recorded")}'
+            f'{built_with_tag(p)}<div class="idx-chev"></div></div>'
             f"</div>",
             unsafe_allow_html=True,
         )
@@ -376,8 +375,13 @@ def render_index(projects: list[Project], all_projects: list[Project],
         key=lambda p: (status_sort_key(p.status, statuses), p.priority or "ZZ",
                        p.name.lower()),
     )
-    for i, project in enumerate(ordered, start=1):
-        render_row(project, i)
+    # Colours come from the FULL project set, so a vertical keeps its hue when filtered.
+    spines = theme.spine_map(p.vertical for p in all_projects)
+    for start in range(0, len(ordered), CARDS_PER_ROW):
+        cols = st.columns(CARDS_PER_ROW, gap="medium")
+        for col, project in zip(cols, ordered[start:start + CARDS_PER_ROW]):
+            with col:
+                render_row(project, start + 1, spines.get(project.vertical, ""))
 
 
 # ---------------------------------------------------------------------------
@@ -568,8 +572,12 @@ def render_detail(p: Project, all_projects: list[Project], source: str = "") -> 
     ][:6]
     if related:
         st.markdown('<div class="qa"><h3>Related work</h3></div>', unsafe_allow_html=True)
-        for i, q in enumerate(related, start=1):
-            render_row(q, i)
+        spines = theme.spine_map(x.vertical for x in all_projects)
+        for start in range(0, len(related), CARDS_PER_ROW):
+            cols = st.columns(CARDS_PER_ROW, gap="medium")
+            for col, q in zip(cols, related[start:start + CARDS_PER_ROW]):
+                with col:
+                    render_row(q, start + 1, spines.get(q.vertical, ""))
 
 
 # ---------------------------------------------------------------------------
